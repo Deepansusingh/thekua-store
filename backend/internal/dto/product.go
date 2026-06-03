@@ -28,19 +28,19 @@ type ProductImageRequest struct {
 }
 
 type ProductResponse struct {
-	ID          uint                   `json:"id"`
-	Name        string                 `json:"name"`
-	Slug        string                 `json:"slug"`
-	Description string                 `json:"description"`
-	Category    string                 `json:"category"`
-	IsFeatured  bool                   `json:"is_featured"`
+	ID          uint                     `json:"id"`
+	Name        string                   `json:"name"`
+	Slug        string                   `json:"slug"`
+	Description string                   `json:"description"`
+	Category    string                   `json:"category"`
+	IsFeatured  bool                     `json:"is_featured"`
 	Variants    []ProductVariantResponse `json:"variants"`
 	Images      []ProductImageResponse   `json:"images"`
 }
 
 type ProductVariantResponse struct {
-	ID    uint    `json:"id"`
-	Weight string `json:"weight"`
+	ID     uint    `json:"id"`
+	Weight string  `json:"weight"`
 	Price  float64 `json:"price"`
 	Stock  int     `json:"stock"`
 }

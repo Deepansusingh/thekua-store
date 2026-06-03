@@ -1,4 +1,5 @@
 # Backend
+.env
 backend/bin/
 backend/.env
 backend/.env.local

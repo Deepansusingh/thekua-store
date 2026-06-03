@@ -1,11 +1,11 @@
 package dto
 
 type CreateOrderRequest struct {
-	Items            []OrderItemRequest `json:"items" binding:"required"`
-	CustomerName     string              `json:"customer_name" binding:"required"`
-	CustomerEmail    string              `json:"customer_email" binding:"required,email"`
-	CustomerPhone    string              `json:"customer_phone" binding:"required"`
-	ShippingAddress  AddressRequest      `json:"shipping_address" binding:"required"`
+	Items           []OrderItemRequest `json:"items" binding:"required"`
+	CustomerName    string             `json:"customer_name" binding:"required"`
+	CustomerEmail   string             `json:"customer_email" binding:"required,email"`
+	CustomerPhone   string             `json:"customer_phone" binding:"required"`
+	ShippingAddress AddressRequest     `json:"shipping_address" binding:"required"`
 }
 
 type OrderItemRequest struct {
@@ -27,16 +27,16 @@ type UpdateOrderStatusRequest struct {
 }
 
 type OrderResponse struct {
-	ID              uint                  `json:"id"`
-	OrderNumber     string                `json:"order_number"`
-	CustomerName    string                `json:"customer_name"`
-	CustomerEmail   string                `json:"customer_email"`
-	CustomerPhone   string                `json:"customer_phone"`
-	ShippingAddress AddressRequest        `json:"shipping_address"`
-	TotalAmount     float64               `json:"total_amount"`
-	PaymentStatus   string                `json:"payment_status"`
-	OrderStatus     string                `json:"order_status"`
-	Items           []OrderItemResponse   `json:"items"`
+	ID              uint                `json:"id"`
+	OrderNumber     string              `json:"order_number"`
+	CustomerName    string              `json:"customer_name"`
+	CustomerEmail   string              `json:"customer_email"`
+	CustomerPhone   string              `json:"customer_phone"`
+	ShippingAddress AddressRequest      `json:"shipping_address"`
+	TotalAmount     float64             `json:"total_amount"`
+	PaymentStatus   string              `json:"payment_status"`
+	OrderStatus     string              `json:"order_status"`
+	Items           []OrderItemResponse `json:"items"`
 }
 
 type OrderItemResponse struct {

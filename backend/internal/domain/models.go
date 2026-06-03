@@ -9,14 +9,14 @@ import (
 
 // User model
 type User struct {
-	ID        uint      `gorm:"primaryKey" json:"id"`
-	Name      string    `json:"name"`
-	Email     string    `gorm:"uniqueIndex" json:"email"`
-	Phone     string    `json:"phone"`
-	Password  string    `json:"-"`
-	Role      UserRole  `json:"role"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	ID        uint           `gorm:"primaryKey" json:"id"`
+	Name      string         `json:"name"`
+	Email     string         `gorm:"uniqueIndex" json:"email"`
+	Phone     string         `json:"phone"`
+	Password  string         `json:"-"`
+	Role      UserRole       `json:"role"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 }
 
@@ -29,29 +29,29 @@ const (
 
 // Address model
 type Address struct {
-	ID       uint      `gorm:"primaryKey" json:"id"`
-	UserID   uint      `json:"user_id"`
-	FullName string    `json:"full_name"`
-	Phone    string    `json:"phone"`
-	Street   string    `json:"street"`
-	City     string    `json:"city"`
-	State    string    `json:"state"`
-	Pincode  string    `json:"pincode"`
-	IsDefault bool     `json:"is_default"`
+	ID        uint      `gorm:"primaryKey" json:"id"`
+	UserID    uint      `json:"user_id"`
+	FullName  string    `json:"full_name"`
+	Phone     string    `json:"phone"`
+	Street    string    `json:"street"`
+	City      string    `json:"city"`
+	State     string    `json:"state"`
+	Pincode   string    `json:"pincode"`
+	IsDefault bool      `json:"is_default"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
 // Product model
 type Product struct {
-	ID          uint      `gorm:"primaryKey" json:"id"`
-	Name        string    `json:"name"`
-	Slug        string    `gorm:"uniqueIndex" json:"slug"`
-	Description string    `gorm:"type:text" json:"description"`
-	Category    string    `json:"category"`
-	IsFeatured  bool      `json:"is_featured"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	ID          uint           `gorm:"primaryKey" json:"id"`
+	Name        string         `json:"name"`
+	Slug        string         `gorm:"uniqueIndex" json:"slug"`
+	Description string         `gorm:"type:text" json:"description"`
+	Category    string         `json:"category"`
+	IsFeatured  bool           `json:"is_featured"`
+	CreatedAt   time.Time      `json:"created_at"`
+	UpdatedAt   time.Time      `json:"updated_at"`
 	DeletedAt   gorm.DeletedAt `gorm:"index" json:"-"`
 
 	// Relations
@@ -82,11 +82,11 @@ type ProductVariant struct {
 
 // Cart model
 type Cart struct {
-	ID        uint      `gorm:"primaryKey" json:"id"`
-	UserID    *uint     `json:"user_id"` // NULL for guest
-	SessionID string    `json:"session_id"` // For guest users
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	ID        uint           `gorm:"primaryKey" json:"id"`
+	UserID    *uint          `json:"user_id"`    // NULL for guest
+	SessionID string         `json:"session_id"` // For guest users
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 
 	Items []CartItem `json:"items,omitempty"`
@@ -107,19 +107,19 @@ type CartItem struct {
 
 // Order model
 type Order struct {
-	ID              uint         `gorm:"primaryKey" json:"id"`
-	OrderNumber     string       `gorm:"uniqueIndex" json:"order_number"`
-	UserID          *uint        `json:"user_id"` // NULL for guest
-	CustomerName    string       `json:"customer_name"`
-	CustomerEmail   string       `json:"customer_email"`
-	CustomerPhone   string       `json:"customer_phone"`
-	ShippingAddress datatypes.JSONType `json:"shipping_address" gorm:"type:jsonb"`
-	TotalAmount     float64      `json:"total_amount"`
-	PaymentStatus   PaymentStatus `json:"payment_status"`
-	OrderStatus     OrderStatus   `json:"order_status"`
-	CreatedAt       time.Time    `json:"created_at"`
-	UpdatedAt       time.Time    `json:"updated_at"`
-	DeletedAt       gorm.DeletedAt `gorm:"index" json:"-"`
+	ID              uint               `gorm:"primaryKey" json:"id"`
+	OrderNumber     string             `gorm:"uniqueIndex" json:"order_number"`
+	UserID          *uint              `json:"user_id"` // NULL for guest
+	CustomerName    string             `json:"customer_name"`
+	CustomerEmail   string             `json:"customer_email"`
+	CustomerPhone   string             `json:"customer_phone"`
+	ShippingAddress datatypes.JSON `json:"shipping_address" gorm:"type:jsonb"`
+	TotalAmount     float64            `json:"total_amount"`
+	PaymentStatus   PaymentStatus      `json:"payment_status"`
+	OrderStatus     OrderStatus        `json:"order_status"`
+	CreatedAt       time.Time          `json:"created_at"`
+	UpdatedAt       time.Time          `json:"updated_at"`
+	DeletedAt       gorm.DeletedAt     `gorm:"index" json:"-"`
 
 	Items []OrderItem `json:"items,omitempty"`
 }
@@ -127,13 +127,13 @@ type Order struct {
 type OrderStatus string
 
 const (
-	OrderStatusPending       OrderStatus = "pending"
-	OrderStatusConfirmed     OrderStatus = "confirmed"
-	OrderStatusPreparing     OrderStatus = "preparing"
-	OrderStatusShipped       OrderStatus = "shipped"
+	OrderStatusPending        OrderStatus = "pending"
+	OrderStatusConfirmed      OrderStatus = "confirmed"
+	OrderStatusPreparing      OrderStatus = "preparing"
+	OrderStatusShipped        OrderStatus = "shipped"
 	OrderStatusOutForDelivery OrderStatus = "out_for_delivery"
-	OrderStatusDelivered     OrderStatus = "delivered"
-	OrderStatusCancelled     OrderStatus = "cancelled"
+	OrderStatusDelivered      OrderStatus = "delivered"
+	OrderStatusCancelled      OrderStatus = "cancelled"
 )
 
 type PaymentStatus string

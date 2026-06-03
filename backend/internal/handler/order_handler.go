@@ -1,1 +1,101 @@
-package handler\n\nimport (\n\t\"net/http\"\n\t\"strconv\"\n\n\t\"github.com/Deepansusingh/thekua-store/backend/internal/dto\"\n\t\"github.com/Deepansusingh/thekua-store/backend/internal/service\"\n\t\"github.com/Deepansusingh/thekua-store/backend/pkg/logger\"\n\t\"github.com/gin-gonic/gin\"\n)\n\ntype OrderHandler struct {\n\torderService service.OrderService\n\tlog          *logger.Logger\n}\n\nfunc NewOrderHandler(orderService service.OrderService, log *logger.Logger) *OrderHandler {\n\treturn &OrderHandler{\n\t\torderService: orderService,\n\t\tlog:          log,\n\t}\n}\n\nfunc (h *OrderHandler) CreateOrder(c *gin.Context) {\n\tvar req dto.CreateOrderRequest\n\tif err := c.ShouldBindJSON(&req); err != nil {\n\t\tc.JSON(http.StatusBadRequest, gin.H{\"error\": err.Error()})\n\t\treturn\n\t}\n\n\t// Get user ID from context if authenticated\n\tvar userID *uint\n\tif uid, exists := c.Get(\"user_id\"); exists {\n\t\tif id, ok := uid.(uint); ok {\n\t\t\tuserID = &id\n\t\t}\n\t}\n\n\torder, err := h.orderService.CreateOrder(&req, userID)\n\tif err != nil {\n\t\th.log.Warnf(\"Failed to create order: %v\", err)\n\t\tc.JSON(http.StatusBadRequest, gin.H{\"error\": err.Error()})\n\t\treturn\n\t}\n\n\tc.JSON(http.StatusCreated, order)\n}\n\nfunc (h *OrderHandler) GetOrder(c *gin.Context) {\n\torderID, err := strconv.ParseUint(c.Param(\"id\"), 10, 32)\n\tif err != nil {\n\t\tc.JSON(http.StatusBadRequest, gin.H{\"error\": \"invalid order id\"})\n\t\treturn\n\t}\n\n\torder, err := h.orderService.GetOrder(uint(orderID))\n\tif err != nil {\n\t\th.log.Warnf(\"Order not found: %d\", orderID)\n\t\tc.JSON(http.StatusNotFound, gin.H{\"error\": err.Error()})\n\t\treturn\n\t}\n\n\tc.JSON(http.StatusOK, order)\n}\n\nfunc (h *OrderHandler) TrackOrder(c *gin.Context) {\n\torderNumber := c.Param(\"orderNumber\")\n\tphone := c.Query(\"phone\")\n\n\tif phone == \"\" {\n\t\tc.JSON(http.StatusBadRequest, gin.H{\"error\": \"phone number is required\"})\n\t\treturn\n\t}\n\n\torder, err := h.orderService.TrackOrder(orderNumber, phone)\n\tif err != nil {\n\t\th.log.Warnf(\"Failed to track order: %v\", err)\n\t\tc.JSON(http.StatusNotFound, gin.H{\"error\": err.Error()})\n\t\treturn\n\t}\n\n\tc.JSON(http.StatusOK, order)\n}\n
+package handler
+
+import (
+	"net/http"
+	"strconv"
+
+	"github.com/Deepansusingh/thekua-store/backend/internal/dto"
+	"github.com/Deepansusingh/thekua-store/backend/internal/service"
+	"github.com/Deepansusingh/thekua-store/backend/pkg/logger"
+	"github.com/gin-gonic/gin"
+)
+
+type OrderHandler struct {
+	orderService service.OrderService
+	log          *logger.Logger
+}
+
+func NewOrderHandler(orderService service.OrderService, log *logger.Logger) *OrderHandler {
+	return &OrderHandler{
+		orderService: orderService,
+		log:          log,
+	}
+}
+
+func (h *OrderHandler) CreateOrder(c *gin.Context) {
+	var req dto.CreateOrderRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Get user ID from context if authenticated
+	var userID *uint
+	if uid, exists := c.Get("user_id"); exists {
+		if id, ok := uid.(uint); ok {
+			userID = &id
+		}
+	}
+
+	order, err := h.orderService.CreateOrder(&req, userID)
+	if err != nil {
+		h.log.Warnf("Failed to create order: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusCreated, order)
+}
+
+func (h *OrderHandler) GetOrder(c *gin.Context) {
+	orderID, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid order id"})
+		return
+	}
+
+	order, err := h.orderService.GetOrder(uint(orderID))
+	if err != nil {
+		h.log.Warnf("Order not found: %d", orderID)
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, order)
+}
+
+func (h *OrderHandler) TrackOrder(c *gin.Context) {
+	orderNumber := c.Param("orderNumber")
+	phone := c.Query("phone")
+
+	if phone == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "phone number is required"})
+		return
+	}
+
+	order, err := h.orderService.TrackOrder(orderNumber, phone)
+	if err != nil {
+		h.log.Warnf("Failed to track order: %v", err)
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, order)
+}
+
+func (h *OrderHandler) ListCustomerOrders(c *gin.Context) {
+	email := c.Query("email")
+	if email == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "email query parameter is required"})
+		return
+	}
+
+	orders, err := h.orderService.ListCustomerOrdersByEmail(email, 100, 0)
+	if err != nil {
+		h.log.Warnf("Failed to list customer orders: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, orders)
+}

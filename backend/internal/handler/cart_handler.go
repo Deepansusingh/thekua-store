@@ -1,1 +1,141 @@
-package handler\n\nimport (\n\t\"net/http\"\n\t\"strconv\"\n\n\t\"github.com/Deepansusingh/thekua-store/backend/internal/dto\"\n\t\"github.com/Deepansusingh/thekua-store/backend/internal/service\"\n\t\"github.com/Deepansusingh/thekua-store/backend/pkg/logger\"\n\t\"github.com/Deepansusingh/thekua-store/backend/pkg/utils\"\n\t\"github.com/gin-gonic/gin\"\n)\n\ntype CartHandler struct {\n\tcartService service.CartService\n\tlog         *logger.Logger\n}\n\nfunc NewCartHandler(cartService service.CartService, log *logger.Logger) *CartHandler {\n\treturn &CartHandler{\n\t\tcartService: cartService,\n\t\tlog:         log,\n\t}\n}\n\nfunc (h *CartHandler) AddToCart(c *gin.Context) {\n\tvar req dto.AddToCartRequest\n\tif err := c.ShouldBindJSON(&req); err != nil {\n\t\tc.JSON(http.StatusBadRequest, gin.H{\"error\": err.Error()})\n\t\treturn\n\t}\n\n\t// Get user ID from context if authenticated\n\tvar userID *uint\n\tif uid, exists := c.Get(\"user_id\"); exists {\n\t\tif id, ok := uid.(uint); ok {\n\t\t\tuserID = &id\n\t\t}\n\t}\n\n\t// Get or create session ID\n\tsessionID := c.GetString(\"session_id\")\n\tif sessionID == \"\" {\n\t\tsessionID = utils.GenerateSessionID()\n\t\tc.SetCookie(\"session_id\", sessionID, 86400*30, \"/\", \"\", false, true)\n\t}\n\n\titem, err := h.cartService.AddToCart(userID, sessionID, &req)\n\tif err != nil {\n\t\th.log.Warnf(\"Failed to add to cart: %v\", err)\n\t\tc.JSON(http.StatusBadRequest, gin.H{\"error\": err.Error()})\n\t\treturn\n\t}\n\n\tc.JSON(http.StatusCreated, item)\n}\n\nfunc (h *CartHandler) GetCartItems(c *gin.Context) {\n\tvar userID *uint\n\tif uid, exists := c.Get(\"user_id\"); exists {\n\t\tif id, ok := uid.(uint); ok {\n\t\t\tuserID = &id\n\t\t}\n\t}\n\n\tsessionID, _ := c.Cookie(\"session_id\")\n\n\titems, err := h.cartService.GetCartItems(userID, sessionID)\n\tif err != nil {\n\t\th.log.Errorf(\"Failed to get cart items: %v\", err)\n\t\tc.JSON(http.StatusInternalServerError, gin.H{\"error\": err.Error()})\n\t\treturn\n\t}\n\n\ttotal, _ := h.cartService.GetCartTotal(userID, sessionID)\n\n\tc.JSON(http.StatusOK, gin.H{\n\t\t\"items\": items,\n\t\t\"total\": total,\n\t})\n}\n\nfunc (h *CartHandler) UpdateCartItem(c *gin.Context) {\n\titemID, err := strconv.ParseUint(c.Param(\"itemID\"), 10, 32)\n\tif err != nil {\n\t\tc.JSON(http.StatusBadRequest, gin.H{\"error\": \"invalid item id\"})\n\t\treturn\n\t}\n\n\tvar req dto.UpdateCartItemRequest\n\tif err := c.ShouldBindJSON(&req); err != nil {\n\t\tc.JSON(http.StatusBadRequest, gin.H{\"error\": err.Error()})\n\t\treturn\n\t}\n\n\titem, err := h.cartService.UpdateCartItem(uint(itemID), &req)\n\tif err != nil {\n\t\th.log.Warnf(\"Failed to update cart item: %v\", err)\n\t\tc.JSON(http.StatusBadRequest, gin.H{\"error\": err.Error()})\n\t\treturn\n\t}\n\n\tc.JSON(http.StatusOK, item)\n}\n\nfunc (h *CartHandler) RemoveFromCart(c *gin.Context) {\n\titemID, err := strconv.ParseUint(c.Param(\"itemID\"), 10, 32)\n\tif err != nil {\n\t\tc.JSON(http.StatusBadRequest, gin.H{\"error\": \"invalid item id\"})\n\t\treturn\n\t}\n\n\terr = h.cartService.RemoveFromCart(uint(itemID))\n\tif err != nil {\n\t\th.log.Warnf(\"Failed to remove from cart: %v\", err)\n\t\tc.JSON(http.StatusBadRequest, gin.H{\"error\": err.Error()})\n\t\treturn\n\t}\n\n\tc.JSON(http.StatusOK, gin.H{\"message\": \"item removed from cart\"})\n}\n\nfunc (h *CartHandler) ClearCart(c *gin.Context) {\n\tvar userID *uint\n\tif uid, exists := c.Get(\"user_id\"); exists {\n\t\tif id, ok := uid.(uint); ok {\n\t\t\tuserID = &id\n\t\t}\n\t}\n\n\tsessionID, _ := c.Cookie(\"session_id\")\n\n\terr := h.cartService.ClearCart(userID, sessionID)\n\tif err != nil {\n\t\th.log.Warnf(\"Failed to clear cart: %v\", err)\n\t\tc.JSON(http.StatusBadRequest, gin.H{\"error\": err.Error()})\n\t\treturn\n\t}\n\n\tc.JSON(http.StatusOK, gin.H{\"message\": \"cart cleared\"})\n}\n
+package handler
+
+import (
+	"net/http"
+	"strconv"
+
+	"github.com/Deepansusingh/thekua-store/backend/internal/dto"
+	"github.com/Deepansusingh/thekua-store/backend/internal/service"
+	"github.com/Deepansusingh/thekua-store/backend/pkg/logger"
+	"github.com/Deepansusingh/thekua-store/backend/pkg/utils"
+	"github.com/gin-gonic/gin"
+)
+
+type CartHandler struct {
+	cartService service.CartService
+	log         *logger.Logger
+}
+
+func NewCartHandler(cartService service.CartService, log *logger.Logger) *CartHandler {
+	return &CartHandler{
+		cartService: cartService,
+		log:         log,
+	}
+}
+
+func (h *CartHandler) AddToCart(c *gin.Context) {
+	var req dto.AddToCartRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Get user ID from context if authenticated
+	var userID *uint
+	if uid, exists := c.Get("user_id"); exists {
+		if id, ok := uid.(uint); ok {
+			userID = &id
+		}
+	}
+
+	// Get or create session ID
+	sessionID := c.GetString("session_id")
+	if sessionID == "" {
+		sessionID = utils.GenerateSessionID()
+		c.SetCookie("session_id", sessionID, 86400*30, "/", "", false, true)
+	}
+
+	item, err := h.cartService.AddToCart(userID, sessionID, &req)
+	if err != nil {
+		h.log.Warnf("Failed to add to cart: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusCreated, item)
+}
+
+func (h *CartHandler) GetCartItems(c *gin.Context) {
+	var userID *uint
+	if uid, exists := c.Get("user_id"); exists {
+		if id, ok := uid.(uint); ok {
+			userID = &id
+		}
+	}
+
+	sessionID, _ := c.Cookie("session_id")
+
+	items, err := h.cartService.GetCartItems(userID, sessionID)
+	if err != nil {
+		h.log.Errorf("Failed to get cart items: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	total, _ := h.cartService.GetCartTotal(userID, sessionID)
+
+	c.JSON(http.StatusOK, gin.H{
+		"items": items,
+		"total": total,
+	})
+}
+
+func (h *CartHandler) UpdateCartItem(c *gin.Context) {
+	itemID, err := strconv.ParseUint(c.Param("itemID"), 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid item id"})
+		return
+	}
+
+	var req dto.UpdateCartItemRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	item, err := h.cartService.UpdateCartItem(uint(itemID), &req)
+	if err != nil {
+		h.log.Warnf("Failed to update cart item: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, item)
+}
+
+func (h *CartHandler) RemoveFromCart(c *gin.Context) {
+	itemID, err := strconv.ParseUint(c.Param("itemID"), 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid item id"})
+		return
+	}
+
+	err = h.cartService.RemoveFromCart(uint(itemID))
+	if err != nil {
+		h.log.Warnf("Failed to remove from cart: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "item removed from cart"})
+}
+
+func (h *CartHandler) ClearCart(c *gin.Context) {
+	var userID *uint
+	if uid, exists := c.Get("user_id"); exists {
+		if id, ok := uid.(uint); ok {
+			userID = &id
+		}
+	}
+
+	sessionID, _ := c.Cookie("session_id")
+
+	err := h.cartService.ClearCart(userID, sessionID)
+	if err != nil {
+		h.log.Warnf("Failed to clear cart: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "cart cleared"})
+}

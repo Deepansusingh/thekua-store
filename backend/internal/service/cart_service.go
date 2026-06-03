@@ -1,1 +1,167 @@
-package service\n\nimport (\n\t\"fmt\"\n\n\t\"github.com/Deepansusingh/thekua-store/backend/internal/domain\"\n\t\"github.com/Deepansusingh/thekua-store/backend/internal/dto\"\n\t\"github.com/Deepansusingh/thekua-store/backend/internal/repository\"\n\t\"github.com/Deepansusingh/thekua-store/backend/pkg/logger\"\n\t\"github.com/Deepansusingh/thekua-store/backend/pkg/utils\"\n)\n\ntype CartService interface {\n\tAddToCart(userID *uint, sessionID string, req *dto.AddToCartRequest) (*domain.CartItem, error)\n\tGetCartItems(userID *uint, sessionID string) ([]domain.CartItem, error)\n\tUpdateCartItem(itemID uint, req *dto.UpdateCartItemRequest) (*domain.CartItem, error)\n\tRemoveFromCart(itemID uint) error\n\tClearCart(userID *uint, sessionID string) error\n\tGetCartTotal(userID *uint, sessionID string) (float64, error)\n}\n\ntype cartService struct {\n\tcartRepo        repository.CartRepository\n\tcartItemRepo    repository.CartItemRepository\n\tvariantRepo     repository.ProductVariantRepository\n\tlog             *logger.Logger\n}\n\nfunc NewCartService(\n\tcartRepo repository.CartRepository,\n\tcartItemRepo repository.CartItemRepository,\n\tvariantRepo repository.ProductVariantRepository,\n\tlog *logger.Logger,\n) CartService {\n\treturn &cartService{\n\t\tcartRepo:     cartRepo,\n\t\tcartItemRepo: cartItemRepo,\n\t\tvariantRepo:  variantRepo,\n\t\tlog:          log,\n\t}\n}\n\nfunc (s *cartService) AddToCart(userID *uint, sessionID string, req *dto.AddToCartRequest) (*domain.CartItem, error) {\n\t// Get or create cart\n\tvar cart *domain.Cart\n\tvar err error\n\n\tif userID != nil {\n\t\tcart, err = s.cartRepo.GetByUserID(*userID)\n\t\tif err != nil {\n\t\t\t// Create new cart for user\n\t\t\tcart = &domain.Cart{UserID: userID}\n\t\t\tif err := s.cartRepo.Create(cart); err != nil {\n\t\t\t\ts.log.Errorf(\"Failed to create cart: %v\", err)\n\t\t\t\treturn nil, fmt.Errorf(\"failed to add to cart\")\n\t\t\t}\n\t\t}\n\t} else {\n\t\tcart, err = s.cartRepo.GetBySessionID(sessionID)\n\t\tif err != nil {\n\t\t\t// Create new cart for guest\n\t\t\tcart = &domain.Cart{SessionID: sessionID}\n\t\t\tif err := s.cartRepo.Create(cart); err != nil {\n\t\t\t\ts.log.Errorf(\"Failed to create cart: %v\", err)\n\t\t\t\treturn nil, fmt.Errorf(\"failed to add to cart\")\n\t\t\t}\n\t\t}\n\t}\n\n\t// Verify variant exists and has stock\n\tvariant, err := s.variantRepo.GetByID(req.VariantID)\n\tif err != nil || variant.Stock < req.Quantity {\n\t\treturn nil, fmt.Errorf(\"insufficient stock\")\n\t}\n\n\t// Create cart item\n\tcartItem := &domain.CartItem{\n\t\tCartID:    cart.ID,\n\t\tVariantID: req.VariantID,\n\t\tQuantity:  req.Quantity,\n\t\tPrice:     variant.Price,\n\t}\n\n\tif err := s.cartItemRepo.Create(cartItem); err != nil {\n\t\ts.log.Errorf(\"Failed to add item to cart: %v\", err)\n\t\treturn nil, fmt.Errorf(\"failed to add to cart\")\n\t}\n\n\ts.log.Infof(\"Item added to cart: variant %d, quantity %d\", req.VariantID, req.Quantity)\n\treturn cartItem, nil\n}\n\nfunc (s *cartService) GetCartItems(userID *uint, sessionID string) ([]domain.CartItem, error) {\n\tvar cart *domain.Cart\n\tvar err error\n\n\tif userID != nil {\n\t\tcart, err = s.cartRepo.GetByUserID(*userID)\n\t} else {\n\t\tcart, err = s.cartRepo.GetBySessionID(sessionID)\n\t}\n\n\tif err != nil {\n\t\treturn []domain.CartItem{}, nil\n\t}\n\n\treturn s.cartItemRepo.ListByCartID(cart.ID)\n}\n\nfunc (s *cartService) UpdateCartItem(itemID uint, req *dto.UpdateCartItemRequest) (*domain.CartItem, error) {\n\tcartItem, err := s.cartItemRepo.GetByID(itemID)\n\tif err != nil {\n\t\treturn nil, fmt.Errorf(\"cart item not found\")\n\t}\n\n\tcartItem.Quantity = req.Quantity\n\n\tif err := s.cartItemRepo.Update(cartItem); err != nil {\n\t\ts.log.Errorf(\"Failed to update cart item: %v\", err)\n\t\treturn nil, fmt.Errorf(\"failed to update cart item\")\n\t}\n\n\treturn cartItem, nil\n}\n\nfunc (s *cartService) RemoveFromCart(itemID uint) error {\n\tif err := s.cartItemRepo.Delete(itemID); err != nil {\n\t\ts.log.Errorf(\"Failed to remove from cart: %v\", err)\n\t\treturn fmt.Errorf(\"failed to remove from cart\")\n\t}\n\treturn nil\n}\n\nfunc (s *cartService) ClearCart(userID *uint, sessionID string) error {\n\tvar cart *domain.Cart\n\tvar err error\n\n\tif userID != nil {\n\t\tcart, err = s.cartRepo.GetByUserID(*userID)\n\t} else {\n\t\tcart, err = s.cartRepo.GetBySessionID(sessionID)\n\t}\n\n\tif err != nil {\n\t\treturn fmt.Errorf(\"cart not found\")\n\t}\n\n\tif err := s.cartItemRepo.DeleteByCartID(cart.ID); err != nil {\n\t\ts.log.Errorf(\"Failed to clear cart: %v\", err)\n\t\treturn fmt.Errorf(\"failed to clear cart\")\n\t}\n\n\treturn nil\n}\n\nfunc (s *cartService) GetCartTotal(userID *uint, sessionID string) (float64, error) {\n\titems, err := s.GetCartItems(userID, sessionID)\n\tif err != nil {\n\t\treturn 0, err\n\t}\n\n\ttotal := 0.0\n\tfor _, item := range items {\n\t\ttotal += item.Price * float64(item.Quantity)\n\t}\n\n\treturn total, nil\n}\n
+package service
+
+import (
+	"fmt"
+
+	"github.com/Deepansusingh/thekua-store/backend/internal/domain"
+	"github.com/Deepansusingh/thekua-store/backend/internal/dto"
+	"github.com/Deepansusingh/thekua-store/backend/internal/repository"
+	"github.com/Deepansusingh/thekua-store/backend/pkg/logger"
+)
+
+type CartService interface {
+	AddToCart(userID *uint, sessionID string, req *dto.AddToCartRequest) (*domain.CartItem, error)
+	GetCartItems(userID *uint, sessionID string) ([]domain.CartItem, error)
+	UpdateCartItem(itemID uint, req *dto.UpdateCartItemRequest) (*domain.CartItem, error)
+	RemoveFromCart(itemID uint) error
+	ClearCart(userID *uint, sessionID string) error
+	GetCartTotal(userID *uint, sessionID string) (float64, error)
+}
+
+type cartService struct {
+	cartRepo     *repository.CartRepository
+	cartItemRepo *repository.CartItemRepository
+	variantRepo  *repository.ProductVariantRepository
+	log          *logger.Logger
+}
+
+func NewCartService(
+	cartRepo *repository.CartRepository,
+	cartItemRepo *repository.CartItemRepository,
+	variantRepo *repository.ProductVariantRepository,
+	log *logger.Logger,
+) CartService {
+	return &cartService{
+		cartRepo:     cartRepo,
+		cartItemRepo: cartItemRepo,
+		variantRepo:  variantRepo,
+		log:          log,
+	}
+}
+
+func (s *cartService) AddToCart(userID *uint, sessionID string, req *dto.AddToCartRequest) (*domain.CartItem, error) {
+	// Get or create cart
+	var cart *domain.Cart
+	var err error
+
+	if userID != nil {
+		cart, err = s.cartRepo.GetByUserID(*userID)
+		if err != nil {
+			// Create new cart for user
+			cart = &domain.Cart{UserID: userID}
+			if err := s.cartRepo.Create(cart); err != nil {
+				s.log.Errorf("Failed to create cart: %v", err)
+				return nil, fmt.Errorf("failed to add to cart")
+			}
+		}
+	} else {
+		cart, err = s.cartRepo.GetBySessionID(sessionID)
+		if err != nil {
+			// Create new cart for guest
+			cart = &domain.Cart{SessionID: sessionID}
+			if err := s.cartRepo.Create(cart); err != nil {
+				s.log.Errorf("Failed to create cart: %v", err)
+				return nil, fmt.Errorf("failed to add to cart")
+			}
+		}
+	}
+
+	// Verify variant exists and has stock
+	variant, err := s.variantRepo.GetByID(req.VariantID)
+	if err != nil || variant.Stock < req.Quantity {
+		return nil, fmt.Errorf("insufficient stock")
+	}
+
+	// Create cart item
+	cartItem := &domain.CartItem{
+		CartID:    cart.ID,
+		VariantID: req.VariantID,
+		Quantity:  req.Quantity,
+		Price:     variant.Price,
+	}
+
+	if err := s.cartItemRepo.Create(cartItem); err != nil {
+		s.log.Errorf("Failed to add item to cart: %v", err)
+		return nil, fmt.Errorf("failed to add to cart")
+	}
+
+	s.log.Infof("Item added to cart: variant %d, quantity %d", req.VariantID, req.Quantity)
+	return cartItem, nil
+}
+
+func (s *cartService) GetCartItems(userID *uint, sessionID string) ([]domain.CartItem, error) {
+	var cart *domain.Cart
+	var err error
+
+	if userID != nil {
+		cart, err = s.cartRepo.GetByUserID(*userID)
+	} else {
+		cart, err = s.cartRepo.GetBySessionID(sessionID)
+	}
+
+	if err != nil {
+		return []domain.CartItem{}, nil
+	}
+
+	return s.cartItemRepo.ListByCartID(cart.ID)
+}
+
+func (s *cartService) UpdateCartItem(itemID uint, req *dto.UpdateCartItemRequest) (*domain.CartItem, error) {
+	cartItem, err := s.cartItemRepo.GetByID(itemID)
+	if err != nil {
+		return nil, fmt.Errorf("cart item not found")
+	}
+
+	cartItem.Quantity = req.Quantity
+
+	if err := s.cartItemRepo.Update(cartItem); err != nil {
+		s.log.Errorf("Failed to update cart item: %v", err)
+		return nil, fmt.Errorf("failed to update cart item")
+	}
+
+	return cartItem, nil
+}
+
+func (s *cartService) RemoveFromCart(itemID uint) error {
+	if err := s.cartItemRepo.Delete(itemID); err != nil {
+		s.log.Errorf("Failed to remove from cart: %v", err)
+		return fmt.Errorf("failed to remove from cart")
+	}
+	return nil
+}
+
+func (s *cartService) ClearCart(userID *uint, sessionID string) error {
+	var cart *domain.Cart
+	var err error
+
+	if userID != nil {
+		cart, err = s.cartRepo.GetByUserID(*userID)
+	} else {
+		cart, err = s.cartRepo.GetBySessionID(sessionID)
+	}
+
+	if err != nil {
+		return fmt.Errorf("cart not found")
+	}
+
+	if err := s.cartItemRepo.DeleteByCartID(cart.ID); err != nil {
+		s.log.Errorf("Failed to clear cart: %v", err)
+		return fmt.Errorf("failed to clear cart")
+	}
+
+	return nil
+}
+
+func (s *cartService) GetCartTotal(userID *uint, sessionID string) (float64, error) {
+	items, err := s.GetCartItems(userID, sessionID)
+	if err != nil {
+		return 0, err
+	}
+
+	total := 0.0
+	for _, item := range items {
+		total += item.Price * float64(item.Quantity)
+	}
+
+	return total, nil
+}

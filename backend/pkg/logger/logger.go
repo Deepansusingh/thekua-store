@@ -1,1 +1,21 @@
-package logger\n\nimport (\n\t\"go.uber.org/zap\"\n)\n\ntype Logger struct {\n\t*zap.SugaredLogger\n}\n\nfunc NewLogger(level string) *Logger {\n\tvar config zap.Config\n\tif level == \"production\" {\n\t\tconfig = zap.NewProductionConfig()\n\t} else {\n\t\tconfig = zap.NewDevelopmentConfig()\n\t}\n\n\tlogger, _ := config.Build()\n\treturn &Logger{logger.Sugar()}\n}\n
+package logger
+
+import (
+	"go.uber.org/zap"
+)
+
+type Logger struct {
+	*zap.SugaredLogger
+}
+
+func NewLogger(level string) *Logger {
+	var config zap.Config
+	if level == "production" {
+		config = zap.NewProductionConfig()
+	} else {
+		config = zap.NewDevelopmentConfig()
+	}
+
+	logger, _ := config.Build()
+	return &Logger{logger.Sugar()}
+}

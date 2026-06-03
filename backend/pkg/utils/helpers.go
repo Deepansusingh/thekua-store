@@ -1,1 +1,31 @@
-package utils\n\nimport (\n\t\"fmt\"\n\t\"math/rand\"\n\t\"time\"\n)\n\nfunc GenerateOrderNumber() string {\n\trand.Seed(time.Now().UnixNano())\n\tconst charset = \"0123456789\"\n\torder := \"ORD-\"\n\tfor i := 0; i < 10; i++ {\n\t\torder += string(charset[rand.Intn(len(charset))])\n\t}\n\treturn order\n}\n\nfunc GenerateSessionID() string {\n\trand.Seed(time.Now().UnixNano())\n\tconst charset = \"abcdefghijklmnopqrstuvwxyz0123456789\"\n\tsession := \"\"\n\tfor i := 0; i < 32; i++ {\n\t\tsession += string(charset[rand.Intn(len(charset))])\n\t}\n\treturn session\n}\n\nfunc FormatCurrency(amount float64) string {\n\treturn fmt.Sprintf(\"₹%.2f\", amount)\n}\n
+package utils
+
+import (
+	"fmt"
+	"math/rand"
+	"time"
+)
+
+func GenerateOrderNumber() string {
+	rand.Seed(time.Now().UnixNano())
+	const charset = "0123456789"
+	order := "ORD-"
+	for i := 0; i < 10; i++ {
+		order += string(charset[rand.Intn(len(charset))])
+	}
+	return order
+}
+
+func GenerateSessionID() string {
+	rand.Seed(time.Now().UnixNano())
+	const charset = "abcdefghijklmnopqrstuvwxyz0123456789"
+	session := ""
+	for i := 0; i < 32; i++ {
+		session += string(charset[rand.Intn(len(charset))])
+	}
+	return session
+}
+
+func FormatCurrency(amount float64) string {
+	return fmt.Sprintf("₹%.2f", amount)
+}

@@ -1,1 +1,213 @@
-package service\n\nimport (\n\t\"fmt\"\n\n\t\"github.com/Deepansusingh/thekua-store/backend/internal/domain\"\n\t\"github.com/Deepansusingh/thekua-store/backend/internal/dto\"\n\t\"github.com/Deepansusingh/thekua-store/backend/internal/repository\"\n\t\"github.com/Deepansusingh/thekua-store/backend/pkg/logger\"\n)\n\ntype ProductService interface {\n\tCreateProduct(req *dto.CreateProductRequest) (*domain.Product, error)\n\tUpdateProduct(id uint, req *dto.UpdateProductRequest) (*domain.Product, error)\n\tDeleteProduct(id uint) error\n\tGetProduct(id uint) (*domain.Product, error)\n\tListProducts(limit, offset int) ([]domain.Product, error)\n\tListFeaturedProducts() ([]domain.Product, error)\n\tCreateVariant(productID uint, req *dto.ProductVariantRequest) (*domain.ProductVariant, error)\n\tUpdateVariant(variantID uint, req *dto.ProductVariantRequest) (*domain.ProductVariant, error)\n\tDeleteVariant(variantID uint) error\n\tUploadProductImage(productID uint, req *dto.ProductImageRequest) (*domain.ProductImage, error)\n\tDeleteProductImage(imageID uint) error\n}\n\ntype productService struct {\n\tproductRepo        repository.ProductRepository\n\tvariantRepo        repository.ProductVariantRepository\n\timageRepo          repository.ProductImageRepository\n\tlog                *logger.Logger\n}\n\nfunc NewProductService(\n\tproductRepo repository.ProductRepository,\n\tvariantRepo repository.ProductVariantRepository,\n\timageRepo repository.ProductImageRepository,\n\tlog *logger.Logger,\n) ProductService {\n\treturn &productService{\n\t\tproductRepo: productRepo,\n\t\tvariantRepo: variantRepo,\n\t\timageRepo:   imageRepo,\n\t\tlog:         log,\n\t}\n}\n\nfunc (s *productService) CreateProduct(req *dto.CreateProductRequest) (*domain.Product, error) {\n\tproduct := &domain.Product{\n\t\tName:        req.Name,\n\t\tSlug:        req.Slug,\n\t\tDescription: req.Description,\n\t\tCategory:    req.Category,\n\t\tIsFeatured:  req.IsFeatured,\n\t}\n\n\tif err := s.productRepo.Create(product); err != nil {\n\t\ts.log.Errorf(\"Failed to create product: %v\", err)\n\t\treturn nil, fmt.Errorf(\"failed to create product\")\n\t}\n\n\ts.log.Infof(\"Product created: %s\", req.Name)\n\treturn product, nil\n}\n\nfunc (s *productService) UpdateProduct(id uint, req *dto.UpdateProductRequest) (*domain.Product, error) {\n\tproduct, err := s.productRepo.GetByID(id)\n\tif err != nil {\n\t\ts.log.Warnf(\"Product not found: %d\", id)\n\t\treturn nil, fmt.Errorf(\"product not found\")\n\t}\n\n\tif req.Name != \"\" {\n\t\tproduct.Name = req.Name\n\t}\n\tif req.Description != \"\" {\n\t\tproduct.Description = req.Description\n\t}\n\tif req.Category != \"\" {\n\t\tproduct.Category = req.Category\n\t}\n\tproduct.IsFeatured = req.IsFeatured\n\n\tif err := s.productRepo.Update(product); err != nil {\n\t\ts.log.Errorf(\"Failed to update product: %v\", err)\n\t\treturn nil, fmt.Errorf(\"failed to update product\")\n\t}\n\n\ts.log.Infof(\"Product updated: %d\", id)\n\treturn product, nil\n}\n\nfunc (s *productService) DeleteProduct(id uint) error {\n\tif err := s.productRepo.Delete(id); err != nil {\n\t\ts.log.Errorf(\"Failed to delete product: %v\", err)\n\t\treturn fmt.Errorf(\"failed to delete product\")\n\t}\n\n\ts.log.Infof(\"Product deleted: %d\", id)\n\treturn nil\n}\n\nfunc (s *productService) GetProduct(id uint) (*domain.Product, error) {\n\tproduct, err := s.productRepo.GetByID(id)\n\tif err != nil {\n\t\ts.log.Warnf(\"Product not found: %d\", id)\n\t\treturn nil, fmt.Errorf(\"product not found\")\n\t}\n\treturn product, nil\n}\n\nfunc (s *productService) ListProducts(limit, offset int) ([]domain.Product, error) {\n\tproducts, err := s.productRepo.List(limit, offset)\n\tif err != nil {\n\t\ts.log.Errorf(\"Failed to list products: %v\", err)\n\t\treturn nil, fmt.Errorf(\"failed to list products\")\n\t}\n\treturn products, nil\n}\n\nfunc (s *productService) ListFeaturedProducts() ([]domain.Product, error) {\n\tproducts, err := s.productRepo.ListFeatured()\n\tif err != nil {\n\t\ts.log.Errorf(\"Failed to list featured products: %v\", err)\n\t\treturn nil, fmt.Errorf(\"failed to list featured products\")\n\t}\n\treturn products, nil\n}\n\nfunc (s *productService) CreateVariant(productID uint, req *dto.ProductVariantRequest) (*domain.ProductVariant, error) {\n\t// Verify product exists\n\t_, err := s.productRepo.GetByID(productID)\n\tif err != nil {\n\t\treturn nil, fmt.Errorf(\"product not found\")\n\t}\n\n\tvariant := &domain.ProductVariant{\n\t\tProductID: productID,\n\t\tWeight:    req.Weight,\n\t\tPrice:     req.Price,\n\t\tStock:     req.Stock,\n\t}\n\n\tif err := s.variantRepo.Create(variant); err != nil {\n\t\ts.log.Errorf(\"Failed to create variant: %v\", err)\n\t\treturn nil, fmt.Errorf(\"failed to create variant\")\n\t}\n\n\ts.log.Infof(\"Variant created for product: %d\", productID)\n\treturn variant, nil\n}\n\nfunc (s *productService) UpdateVariant(variantID uint, req *dto.ProductVariantRequest) (*domain.ProductVariant, error) {\n\tvariant, err := s.variantRepo.GetByID(variantID)\n\tif err != nil {\n\t\ts.log.Warnf(\"Variant not found: %d\", variantID)\n\t\treturn nil, fmt.Errorf(\"variant not found\")\n\t}\n\n\tvariant.Weight = req.Weight\n\tvariant.Price = req.Price\n\tvariant.Stock = req.Stock\n\n\tif err := s.variantRepo.Update(variant); err != nil {\n\t\ts.log.Errorf(\"Failed to update variant: %v\", err)\n\t\treturn nil, fmt.Errorf(\"failed to update variant\")\n\t}\n\n\ts.log.Infof(\"Variant updated: %d\", variantID)\n\treturn variant, nil\n}\n\nfunc (s *productService) DeleteVariant(variantID uint) error {\n\tif err := s.variantRepo.Delete(variantID); err != nil {\n\t\ts.log.Errorf(\"Failed to delete variant: %v\", err)\n\t\treturn fmt.Errorf(\"failed to delete variant\")\n\t}\n\n\ts.log.Infof(\"Variant deleted: %d\", variantID)\n\treturn nil\n}\n\nfunc (s *productService) UploadProductImage(productID uint, req *dto.ProductImageRequest) (*domain.ProductImage, error) {\n\t// Verify product exists\n\t_, err := s.productRepo.GetByID(productID)\n\tif err != nil {\n\t\treturn nil, fmt.Errorf(\"product not found\")\n\t}\n\n\timage := &domain.ProductImage{\n\t\tProductID: productID,\n\t\tImageURL:  req.ImageURL,\n\t\tAltText:   req.AltText,\n\t\tIsMain:    req.IsMain,\n\t}\n\n\tif err := s.imageRepo.Create(image); err != nil {\n\t\ts.log.Errorf(\"Failed to upload image: %v\", err)\n\t\treturn nil, fmt.Errorf(\"failed to upload image\")\n\t}\n\n\ts.log.Infof(\"Image uploaded for product: %d\", productID)\n\treturn image, nil\n}\n\nfunc (s *productService) DeleteProductImage(imageID uint) error {\n\tif err := s.imageRepo.Delete(imageID); err != nil {\n\t\ts.log.Errorf(\"Failed to delete image: %v\", err)\n\t\treturn fmt.Errorf(\"failed to delete image\")\n\t}\n\n\ts.log.Infof(\"Image deleted: %d\", imageID)\n\treturn nil\n}\n
+package service
+
+import (
+	"fmt"
+
+	"github.com/Deepansusingh/thekua-store/backend/internal/domain"
+	"github.com/Deepansusingh/thekua-store/backend/internal/dto"
+	"github.com/Deepansusingh/thekua-store/backend/internal/repository"
+	"github.com/Deepansusingh/thekua-store/backend/pkg/logger"
+)
+
+type ProductService interface {
+	CreateProduct(req *dto.CreateProductRequest) (*domain.Product, error)
+	UpdateProduct(id uint, req *dto.UpdateProductRequest) (*domain.Product, error)
+	DeleteProduct(id uint) error
+	GetProduct(id uint) (*domain.Product, error)
+	ListProducts(limit, offset int) ([]domain.Product, error)
+	ListFeaturedProducts() ([]domain.Product, error)
+	CreateVariant(productID uint, req *dto.ProductVariantRequest) (*domain.ProductVariant, error)
+	UpdateVariant(variantID uint, req *dto.ProductVariantRequest) (*domain.ProductVariant, error)
+	DeleteVariant(variantID uint) error
+	UploadProductImage(productID uint, req *dto.ProductImageRequest) (*domain.ProductImage, error)
+	DeleteProductImage(imageID uint) error
+}
+
+type productService struct {
+	productRepo *repository.ProductRepository
+	variantRepo *repository.ProductVariantRepository
+	imageRepo   *repository.ProductImageRepository
+	log         *logger.Logger
+}
+
+func NewProductService(
+	productRepo *repository.ProductRepository,
+	variantRepo *repository.ProductVariantRepository,
+	imageRepo *repository.ProductImageRepository,
+	log *logger.Logger,
+) ProductService {
+	return &productService{
+		productRepo: productRepo,
+		variantRepo: variantRepo,
+		imageRepo:   imageRepo,
+		log:         log,
+	}
+}
+
+func (s *productService) CreateProduct(req *dto.CreateProductRequest) (*domain.Product, error) {
+	product := &domain.Product{
+		Name:        req.Name,
+		Slug:        req.Slug,
+		Description: req.Description,
+		Category:    req.Category,
+		IsFeatured:  req.IsFeatured,
+	}
+
+	if err := s.productRepo.Create(product); err != nil {
+		s.log.Errorf("Failed to create product: %v", err)
+		return nil, fmt.Errorf("failed to create product")
+	}
+
+	s.log.Infof("Product created: %s", req.Name)
+	return product, nil
+}
+
+func (s *productService) UpdateProduct(id uint, req *dto.UpdateProductRequest) (*domain.Product, error) {
+	product, err := s.productRepo.GetByID(id)
+	if err != nil {
+		s.log.Warnf("Product not found: %d", id)
+		return nil, fmt.Errorf("product not found")
+	}
+
+	if req.Name != "" {
+		product.Name = req.Name
+	}
+	if req.Description != "" {
+		product.Description = req.Description
+	}
+	if req.Category != "" {
+		product.Category = req.Category
+	}
+	product.IsFeatured = req.IsFeatured
+
+	if err := s.productRepo.Update(product); err != nil {
+		s.log.Errorf("Failed to update product: %v", err)
+		return nil, fmt.Errorf("failed to update product")
+	}
+
+	s.log.Infof("Product updated: %d", id)
+	return product, nil
+}
+
+func (s *productService) DeleteProduct(id uint) error {
+	if err := s.productRepo.Delete(id); err != nil {
+		s.log.Errorf("Failed to delete product: %v", err)
+		return fmt.Errorf("failed to delete product")
+	}
+
+	s.log.Infof("Product deleted: %d", id)
+	return nil
+}
+
+func (s *productService) GetProduct(id uint) (*domain.Product, error) {
+	product, err := s.productRepo.GetByID(id)
+	if err != nil {
+		s.log.Warnf("Product not found: %d", id)
+		return nil, fmt.Errorf("product not found")
+	}
+	return product, nil
+}
+
+func (s *productService) ListProducts(limit, offset int) ([]domain.Product, error) {
+	products, err := s.productRepo.List(limit, offset)
+	if err != nil {
+		s.log.Errorf("Failed to list products: %v", err)
+		return nil, fmt.Errorf("failed to list products")
+	}
+	return products, nil
+}
+
+func (s *productService) ListFeaturedProducts() ([]domain.Product, error) {
+	products, err := s.productRepo.ListFeatured()
+	if err != nil {
+		s.log.Errorf("Failed to list featured products: %v", err)
+		return nil, fmt.Errorf("failed to list featured products")
+	}
+	return products, nil
+}
+
+func (s *productService) CreateVariant(productID uint, req *dto.ProductVariantRequest) (*domain.ProductVariant, error) {
+	// Verify product exists
+	_, err := s.productRepo.GetByID(productID)
+	if err != nil {
+		return nil, fmt.Errorf("product not found")
+	}
+
+	variant := &domain.ProductVariant{
+		ProductID: productID,
+		Weight:    req.Weight,
+		Price:     req.Price,
+		Stock:     req.Stock,
+	}
+
+	if err := s.variantRepo.Create(variant); err != nil {
+		s.log.Errorf("Failed to create variant: %v", err)
+		return nil, fmt.Errorf("failed to create variant")
+	}
+
+	s.log.Infof("Variant created for product: %d", productID)
+	return variant, nil
+}
+
+func (s *productService) UpdateVariant(variantID uint, req *dto.ProductVariantRequest) (*domain.ProductVariant, error) {
+	variant, err := s.variantRepo.GetByID(variantID)
+	if err != nil {
+		s.log.Warnf("Variant not found: %d", variantID)
+		return nil, fmt.Errorf("variant not found")
+	}
+
+	variant.Weight = req.Weight
+	variant.Price = req.Price
+	variant.Stock = req.Stock
+
+	if err := s.variantRepo.Update(variant); err != nil {
+		s.log.Errorf("Failed to update variant: %v", err)
+		return nil, fmt.Errorf("failed to update variant")
+	}
+
+	s.log.Infof("Variant updated: %d", variantID)
+	return variant, nil
+}
+
+func (s *productService) DeleteVariant(variantID uint) error {
+	if err := s.variantRepo.Delete(variantID); err != nil {
+		s.log.Errorf("Failed to delete variant: %v", err)
+		return fmt.Errorf("failed to delete variant")
+	}
+
+	s.log.Infof("Variant deleted: %d", variantID)
+	return nil
+}
+
+func (s *productService) UploadProductImage(productID uint, req *dto.ProductImageRequest) (*domain.ProductImage, error) {
+	// Verify product exists
+	_, err := s.productRepo.GetByID(productID)
+	if err != nil {
+		return nil, fmt.Errorf("product not found")
+	}
+
+	image := &domain.ProductImage{
+		ProductID: productID,
+		ImageURL:  req.ImageURL,
+		AltText:   req.AltText,
+		IsMain:    req.IsMain,
+	}
+
+	if err := s.imageRepo.Create(image); err != nil {
+		s.log.Errorf("Failed to upload image: %v", err)
+		return nil, fmt.Errorf("failed to upload image")
+	}
+
+	s.log.Infof("Image uploaded for product: %d", productID)
+	return image, nil
+}
+
+func (s *productService) DeleteProductImage(imageID uint) error {
+	if err := s.imageRepo.Delete(imageID); err != nil {
+		s.log.Errorf("Failed to delete image: %v", err)
+		return fmt.Errorf("failed to delete image")
+	}
+
+	s.log.Infof("Image deleted: %d", imageID)
+	return nil
+}

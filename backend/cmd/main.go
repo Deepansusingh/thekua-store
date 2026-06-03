@@ -7,6 +7,7 @@ import (
 
 	"github.com/Deepansusingh/thekua-store/backend/internal/config"
 	"github.com/Deepansusingh/thekua-store/backend/internal/handler"
+	"github.com/Deepansusingh/thekua-store/backend/internal/middleware"
 	"github.com/Deepansusingh/thekua-store/backend/internal/repository"
 	"github.com/Deepansusingh/thekua-store/backend/internal/service"
 	"github.com/Deepansusingh/thekua-store/backend/pkg/logger"
@@ -70,6 +71,7 @@ func main() {
 	}
 
 	router := gin.Default()
+	router.Use(middleware.CORSMiddleware())
 
 	// Setup routes
 	setupRoutes(router, authHandler, productHandler, cartHandler, orderHandler, adminHandler, cfg)
@@ -128,6 +130,7 @@ func setupRoutes(
 	orders := api.Group("/orders")
 	{
 		orders.POST("", orderHandler.CreateOrder)
+		orders.GET("/customer", orderHandler.ListCustomerOrders)
 		orders.GET("/:id", orderHandler.GetOrder)
 		orders.GET("/track/:orderNumber", orderHandler.TrackOrder)
 	}

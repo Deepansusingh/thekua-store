@@ -1,1 +1,68 @@
-package handler\n\nimport (\n\t\"net/http\"\n\t\"strconv\"\n\n\t\"github.com/Deepansusingh/thekua-store/backend/internal/dto\"\n\t\"github.com/Deepansusingh/thekua-store/backend/internal/service\"\n\t\"github.com/Deepansusingh/thekua-store/backend/pkg/logger\"\n\t\"github.com/gin-gonic/gin\"\n)\n\ntype ProductHandler struct {\n\tproductService service.ProductService\n\tlog            *logger.Logger\n}\n\nfunc NewProductHandler(productService service.ProductService, log *logger.Logger) *ProductHandler {\n\treturn &ProductHandler{\n\t\tproductService: productService,\n\t\tlog:            log,\n\t}\n}\n\nfunc (h *ProductHandler) ListProducts(c *gin.Context) {\n\tlimit := 20\n\toffset := 0\n\n\tif l := c.Query(\"limit\"); l != \"\" {\n\t\tif val, err := strconv.Atoi(l); err == nil {\n\t\t\tlimit = val\n\t\t}\n\t}\n\n\tif o := c.Query(\"offset\"); o != \"\" {\n\t\tif val, err := strconv.Atoi(o); err == nil {\n\t\t\toffset = val\n\t\t}\n\t}\n\n\tproducts, err := h.productService.ListProducts(limit, offset)\n\tif err != nil {\n\t\th.log.Errorf(\"Failed to list products: %v\", err)\n\t\tc.JSON(http.StatusInternalServerError, gin.H{\"error\": err.Error()})\n\t\treturn\n\t}\n\n\tc.JSON(http.StatusOK, gin.H{\n\t\t\"products\": products,\n\t\t\"count\":    len(products),\n\t})\n}\n\nfunc (h *ProductHandler) GetProduct(c *gin.Context) {\n\tid, err := strconv.ParseUint(c.Param(\"id\"), 10, 32)\n\tif err != nil {\n\t\tc.JSON(http.StatusBadRequest, gin.H{\"error\": \"invalid product id\"})\n\t\treturn\n\t}\n\n\tproduct, err := h.productService.GetProduct(uint(id))\n\tif err != nil {\n\t\th.log.Warnf(\"Product not found: %d\", id)\n\t\tc.JSON(http.StatusNotFound, gin.H{\"error\": err.Error()})\n\t\treturn\n\t}\n\n\tc.JSON(http.StatusOK, product)\n}\n
+package handler
+
+import (
+	"net/http"
+	"strconv"
+
+	"github.com/Deepansusingh/thekua-store/backend/internal/service"
+	"github.com/Deepansusingh/thekua-store/backend/pkg/logger"
+	"github.com/gin-gonic/gin"
+)
+
+type ProductHandler struct {
+	productService service.ProductService
+	log            *logger.Logger
+}
+
+func NewProductHandler(productService service.ProductService, log *logger.Logger) *ProductHandler {
+	return &ProductHandler{
+		productService: productService,
+		log:            log,
+	}
+}
+
+func (h *ProductHandler) ListProducts(c *gin.Context) {
+	limit := 20
+	offset := 0
+
+	if l := c.Query("limit"); l != "" {
+		if val, err := strconv.Atoi(l); err == nil {
+			limit = val
+		}
+	}
+
+	if o := c.Query("offset"); o != "" {
+		if val, err := strconv.Atoi(o); err == nil {
+			offset = val
+		}
+	}
+
+	products, err := h.productService.ListProducts(limit, offset)
+	if err != nil {
+		h.log.Errorf("Failed to list products: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"products": products,
+		"count":    len(products),
+	})
+}
+
+func (h *ProductHandler) GetProduct(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid product id"})
+		return
+	}
+
+	product, err := h.productService.GetProduct(uint(id))
+	if err != nil {
+		h.log.Warnf("Product not found: %d", id)
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, product)
+}

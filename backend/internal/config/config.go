@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/Deepansusingh/thekua-store/backend/internal/domain"
 	"github.com/Deepansusingh/thekua-store/backend/pkg/logger"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -93,7 +94,21 @@ func InitDB(cfg *Config, log *logger.Logger) (*gorm.DB, error) {
 
 func RunMigrations(db *gorm.DB, log *logger.Logger) error {
 	// AutoMigrate will create tables if they don't exist
-	// We'll implement specific migrations later
+	err := db.AutoMigrate(
+		&domain.User{},
+		&domain.Address{},
+		&domain.Product{},
+		&domain.ProductImage{},
+		&domain.ProductVariant{},
+		&domain.Cart{},
+		&domain.CartItem{},
+		&domain.Order{},
+		&domain.OrderItem{},
+		&domain.Payment{},
+	)
+	if err != nil {
+		return fmt.Errorf("failed to run auto migration: %w", err)
+	}
 	log.Infof("Migrations completed")
 	return nil
 }
