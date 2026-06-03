@@ -1,135 +1,151 @@
 # Thekua Store - E-Commerce Application
 
-A production-ready e-commerce web application for selling traditional Thekua online across India.
+A production-ready full-stack e-commerce web application for selling traditional Thekua online across India.
 
 ## 📋 Project Overview
 
-Thekua Store is a full-stack e-commerce platform built with modern technologies, featuring:
-- Customer and Admin roles
-- Guest checkout
-- Product management with variants
-- Order tracking
-- Payment integration (Razorpay ready)
-- Fully responsive UI
-- Clean architecture
+Thekua Store is a modern full-stack e-commerce platform built with high performance and portability in mind.
+- **Customer and Admin roles**
+- **Guest checkout**
+- **Product management with weight variants**
+- **Order tracking & flow management**
+- **Payment integration**
+- **Fully responsive and vibrant UI**
+- **Clean Architecture pattern**
 
-## 🏗️ Architecture
+---
 
-### Tech Stack
+## 🏗️ Tech Stack
 
-**Frontend:**
-- React 18
-- TypeScript
-- Vite
-- Tailwind CSS
-- React Router
-- Axios
-- React Query
+### Frontend
+- **React 18**
+- **TypeScript**
+- **Vite**
+- **Tailwind CSS**
+- **React Router**
+- **Axios**
+- **Lucide Icons**
 
-**Backend:**
-- Golang 1.21+
-- Gin Framework
-- GORM
-- PostgreSQL
-- JWT Authentication
-- Clean Architecture
+### Backend
+- **Golang 1.21+**
+- **Gin Framework** (High performance HTTP router)
+- **GORM** (Object Relation Mapper)
+- **PostgreSQL**
+- **JWT Authentication**
 
-**Infrastructure:**
-- Docker & Docker Compose
-- PostgreSQL
-- Nginx (reverse proxy)
+### Infrastructure & Deployment
+- **Docker & Docker Compose** (AMD64 compatibility containerized local environment)
+- **PostgreSQL**
+- **Nginx** (Reverse proxy routing frontend `/` and API `/api/`)
+- **Render** (Infrastructure-as-Code deployment blueprint)
+
+---
 
 ## 📁 Project Structure
 
 ```
 thekua-store/
-├── backend/                    # Golang backend
+├── backend/                    # Go backend service
 │   ├── cmd/
-│   │   └── main.go            # Entry point
+│   │   ├── main.go            # Web server entry point
+│   │   └── seed/              # Local db seeding tool
 │   ├── internal/
-│   │   ├── domain/            # Entity models
-│   │   ├── dto/               # Data transfer objects
-│   │   ├── repository/        # Database layer
-│   │   ├── service/           # Business logic
-│   │   ├── handler/           # HTTP handlers
-│   │   ├── middleware/        # Middleware
-│   │   └── config/            # Configuration
-│   ├── migrations/            # Database migrations
+│   │   ├── domain/            # Entities and models
+│   │   ├── dto/               # Request/Response structures
+│   │   ├── repository/        # Database storage operations
+│   │   ├── service/           # Application logic
+│   │   ├── handler/           # Gin controllers
+│   │   ├── middleware/        # Authentication & recovery middleware
+│   │   └── config/            # Env loaders & startup hooks
 │   ├── pkg/
-│   │   ├── logger/            # Logging
-│   │   └── utils/             # Utilities
-│   ├── go.mod
-│   ├── go.sum
+│   │   └── logger/            # Structured logging
 │   ├── Dockerfile
-│   └── .env.example
-├── frontend/                   # React frontend
+│   └── go.mod
+├── frontend/                   # React web interface
 │   ├── src/
-│   │   ├── components/        # React components
-│   │   ├── pages/             # Page components
-│   │   ├── hooks/             # Custom hooks
-│   │   ├── services/          # API services
-│   │   ├── types/             # TypeScript types
-│   │   ├── utils/             # Utilities
-│   │   ├── layouts/           # Layout components
-│   │   ├── App.tsx
-│   │   └── main.tsx
-│   ├── public/                # Static assets
+│   │   ├── components/        # Reusable component libraries
+│   │   ├── pages/             # View pages (Auth, Home, Admin, etc.)
+│   │   ├── services/          # Axios client instances
+│   │   ├── types/             # TypeScript interfaces
+│   │   ├── layouts/           # Page structures
+│   │   └── App.tsx
 │   ├── Dockerfile
-│   ├── docker-compose.yml
-│   ├── vite.config.ts
-│   ├── tailwind.config.js
-│   ├── package.json
-│   └── .env.example
-├── docker-compose.yml         # Main docker compose
-└── .env.example              # Environment variables
+│   └── vite.config.ts
+├── nginx/                      # Local reverse-proxy configs
+├── docker-compose.yml         # Local containerized orchestration
+└── render.yaml                # Infrastructure blueprint configuration
 ```
 
-## 🚀 Quick Start
+---
+
+## 🚀 Local Development (Docker)
+
+To run the application locally on your machine with a fully isolated container setup:
 
 ### Prerequisites
-- Docker & Docker Compose
-- Git
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running.
 
-### Installation
-
-1. **Clone the repository**
+### Quick Start
+1. **Clone and navigate to the project directory:**
    ```bash
    git clone https://github.com/Deepansusingh/thekua-store.git
    cd thekua-store
    ```
 
-2. **Setup environment variables**
+2. **Configure environment variables:**
    ```bash
    cp .env.example .env
-   # Edit .env with your configuration
    ```
 
-3. **Start with Docker Compose**
+3. **Start the Docker orchestration:**
    ```bash
+   docker-compose build
    docker-compose up -d
    ```
+   > [!NOTE]
+   > To prevent conflicts with any pre-existing PostgreSQL servers running on your host system, the local containerized Postgres instance maps to port **`5433`** on the host.
 
-4. **Access the application**
-   - Frontend: http://localhost:3000
-   - Backend API: http://localhost:8080
-   - PostgreSQL: localhost:5432
+4. **Verify services:**
+   - Frontend is accessible at: `http://localhost:3000`
+   - Backend API is accessible at: `http://localhost:8080`
+   - Nginx Proxy is accessible at: `http://localhost`
 
-## 🔐 User Roles
+---
 
-### Customer
-- Register and login
-- Browse products
-- Add to cart
-- Checkout (guest or logged-in)
-- Track orders
-- View order history
+## 📦 Production Deployment (Render)
 
-### Admin
-- Manage products and variants
-- Manage inventory
-- View and manage orders
-- View customer information
-- Update order status
+This repository includes a `render.yaml` infrastructure blueprint. Deploying the entire stack—including the database, server, and web hosting—can be done in a single click:
+
+### 1. Push to GitHub
+Ensure all your modifications are committed and pushed to your GitHub repository.
+
+### 2. Connect to Render Blueprints
+1. Log in to the **[Render Dashboard](https://dashboard.render.com)**.
+2. Click **New +** in the top right and select **Blueprint**.
+3. Link your GitHub repository (`thekua-store`).
+4. Give your Blueprint a name (e.g., `thekua-store`) and click **Apply**.
+
+Render will automatically provision the following:
+- **`thekua-db`**: A managed PostgreSQL database.
+- **`thekua-backend`**: A Go web service linked to the database.
+- **`thekua-frontend`**: A static web application serving the built React app.
+
+### 3. Database Auto-Seeding
+When the backend server boots up on Render for the first time, it automatically detects if the database is empty. If empty, the server automatically:
+- Creates the PostgreSQL schema migrations.
+- Seeds the initial catalogue items (Classic, Kesariya, Dry Fruit varieties).
+- Spins up the default administrator account.
+
+---
+
+## 🔐 Administrator Account
+
+You can log in to manage inventory and view customer orders by heading to the login page, checking the **"Login as Administrator"** box, and using the following seeded credentials:
+
+- **Email**: `shristi@gmail.com`
+- **Password**: `shristi`
+
+---
 
 ## 📚 API Documentation
 
@@ -138,85 +154,29 @@ thekua-store/
 - `POST /api/auth/login` - Customer login
 - `POST /api/auth/admin-login` - Admin login
 
-### Products
+### Catalog
 - `GET /api/products` - List all products
 - `GET /api/products/:id` - Get product details
 
-### Admin
-- `POST /api/admin/products` - Create product
-- `PUT /api/admin/products/:id` - Update product
-- `DELETE /api/admin/products/:id` - Delete product
-- `GET /api/admin/orders` - List orders
-- `PUT /api/admin/orders/:id/status` - Update order status
+### Admin Only
+- `POST /api/admin/products` - Add product to inventory
+- `PUT /api/admin/products/:id` - Edit product details
+- `DELETE /api/admin/products/:id` - Remove product from database
+- `GET /api/admin/orders` - View all customer orders
+- `PUT /api/admin/orders/:id/status` - Update delivery status (Pending, Preparing, Shipped, etc.)
 
-### Orders
-- `POST /api/orders` - Create order
-- `GET /api/orders/:id` - Get order details
-- `GET /api/orders/track/:orderNumber` - Track order
-
-## 📋 Database Schema
-
-### Tables
-- `users` - User accounts
-- `addresses` - Delivery addresses
-- `products` - Product catalog
-- `product_images` - Product images
-- `product_variants` - Product variants (250g, 500g, 1kg)
-- `carts` - Shopping carts
-- `cart_items` - Cart items
-- `orders` - Orders
-- `order_items` - Order line items
-- `payments` - Payment records
-
-## 🐳 Docker Setup
-
-### Docker Compose Services
-- `db` - PostgreSQL database
-- `backend` - Golang API server
-- `frontend` - React application
-- `nginx` - Reverse proxy
-
-## 🔧 Environment Variables
-
-See `.env.example` for all available configuration options.
-
-## 🧪 Testing
-
-```bash
-# Backend tests
-cd backend
-go test ./...
-
-# Frontend tests
-cd frontend
-npm test
-```
-
-## 📦 Deployment
-
-### Production Build
-
-```bash
-# Build Docker images
-docker-compose -f docker-compose.yml build
-
-# Push to registry
-docker tag thekua-store-backend your-registry/thekua-store-backend:latest
-docker push your-registry/thekua-store-backend:latest
-```
+---
 
 ## 🤝 Contributing
 
-1. Fork the repository
-2. Create feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit changes (`git commit -m 'Add AmazingFeature'`)
-4. Push to branch (`git push origin feature/AmazingFeature`)
-5. Open Pull Request
+1. Fork the repository.
+2. Create a feature branch (`git checkout -b feature/AmazingFeature`).
+3. Commit your changes (`git commit -m 'Add AmazingFeature'`).
+4. Push to the branch (`git push origin feature/AmazingFeature`).
+5. Open a Pull Request.
+
+---
 
 ## 📄 License
 
-MIT License - see LICENSE file for details
-
-## 📞 Support
-
-For support, email support@thekuastore.com or create an issue.
+Distributed under the MIT License. See `LICENSE` for more details.
