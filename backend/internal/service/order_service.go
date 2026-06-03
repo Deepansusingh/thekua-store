@@ -23,12 +23,13 @@ type OrderService interface {
 }
 
 type orderService struct {
-	orderRepo     *repository.OrderRepository
-	orderItemRepo *repository.OrderItemRepository
-	cartItemRepo  *repository.CartItemRepository
-	variantRepo   *repository.ProductVariantRepository
-	addressRepo   *repository.AddressRepository
-	log           *logger.Logger
+	orderRepo           *repository.OrderRepository
+	orderItemRepo       *repository.OrderItemRepository
+	cartItemRepo        *repository.CartItemRepository
+	variantRepo         *repository.ProductVariantRepository
+	addressRepo         *repository.AddressRepository
+	notificationService NotificationService
+	log                 *logger.Logger
 }
 
 func NewOrderService(
@@ -37,15 +38,17 @@ func NewOrderService(
 	cartItemRepo *repository.CartItemRepository,
 	variantRepo *repository.ProductVariantRepository,
 	addressRepo *repository.AddressRepository,
+	notificationService NotificationService,
 	log *logger.Logger,
 ) OrderService {
 	return &orderService{
-		orderRepo:     orderRepo,
-		orderItemRepo: orderItemRepo,
-		cartItemRepo:  cartItemRepo,
-		variantRepo:   variantRepo,
-		addressRepo:   addressRepo,
-		log:           log,
+		orderRepo:           orderRepo,
+		orderItemRepo:       orderItemRepo,
+		cartItemRepo:        cartItemRepo,
+		variantRepo:         variantRepo,
+		addressRepo:         addressRepo,
+		notificationService: notificationService,
+		log:                 log,
 	}
 }
 
@@ -116,6 +119,10 @@ func (s *orderService) CreateOrder(req *dto.CreateOrderRequest, userID *uint) (*
 	}
 
 	s.log.Infof("Order created: %s, Total: %.2f", order.OrderNumber, totalAmount)
+
+	// Send notification to admin
+	s.notificationService.SendOrderNotification(order)
+
 	return order, nil
 }
 

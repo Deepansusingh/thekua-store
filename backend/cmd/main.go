@@ -59,10 +59,13 @@ func main() {
 	addressRepo := repository.NewAddressRepository(db)
 
 	// Initialize services
+	webhookURL := os.Getenv("ADMIN_WEBHOOK_URL")
+	notificationService := service.NewNotificationService(webhookURL, log)
+
 	authService := service.NewAuthService(userRepo, cfg.JWT.Secret, cfg.JWT.Expiry, log)
 	productService := service.NewProductService(productRepo, productVariantRepo, productImageRepo, log)
 	cartService := service.NewCartService(cartRepo, cartItemRepo, productVariantRepo, log)
-	orderService := service.NewOrderService(orderRepo, orderItemRepo, cartItemRepo, productVariantRepo, addressRepo, log)
+	orderService := service.NewOrderService(orderRepo, orderItemRepo, cartItemRepo, productVariantRepo, addressRepo, notificationService, log)
 
 	// Initialize handlers
 	authHandler := handler.NewAuthHandler(authService, log)
