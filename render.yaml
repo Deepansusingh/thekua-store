@@ -40,8 +40,7 @@ services:
   - type: static
     name: thekua-frontend
     buildCommand: cd frontend && npm install && npm run build
-    publishPath: frontend/dist
-    plan: free
+    staticPublishPath: frontend/dist
     envVars:
       - key: VITE_API_BASE_URL
         fromService:
