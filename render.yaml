@@ -37,9 +37,8 @@ services:
         value: "*"
 
   # 2. Frontend Static Site
-  - type: web
+  - type: static
     name: thekua-frontend
-    env: static
     buildCommand: cd frontend && npm install && npm run build
     publishPath: frontend/dist
     plan: free
