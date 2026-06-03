@@ -1,0 +1,41 @@
+# Backend
+backend/bin/
+backend/.env
+backend/.env.local
+backend/.vscode/
+backend/.idea/
+backend/*.swp
+backend/*.swo
+backend/*~
+backend/vendor/
+backend/go.sum
+backend/logs/
+
+# Frontend
+node_modules/
+dist/
+.env.local
+.env.*.local
+*.pem
+frontend/.vscode/
+frontend/.idea/
+frontend/.DS_Store
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Docker
+.dockerignore
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
