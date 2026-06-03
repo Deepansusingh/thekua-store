@@ -44,10 +44,7 @@ services:
     staticPublishPath: frontend/dist
     envVars:
       - key: VITE_API_BASE_URL
-        fromService:
-          name: thekua-backend
-          type: web
-          property: host
+        value: https://thekua-backend.onrender.com
 
 databases:
   # 3. PostgreSQL Database
