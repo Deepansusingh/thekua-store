@@ -1,37 +1,14 @@
-package main
+package config
 
 import (
-	"fmt"
-	"log"
-	"os"
-
-	"github.com/Deepansusingh/thekua-store/backend/internal/config"
 	"github.com/Deepansusingh/thekua-store/backend/internal/domain"
 	"github.com/Deepansusingh/thekua-store/backend/pkg/logger"
-	"github.com/joho/godotenv"
 	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
 )
 
-func main() {
-	// Load environment variables
-	if err := godotenv.Load(); err != nil {
-		log.Println("No .env file found, using system environment variables")
-	}
-
-	// Initialize logger
-	l := logger.NewLogger(os.Getenv("LOG_LEVEL"))
-	defer l.Sync()
-
-	// Load configuration
-	cfg := config.LoadConfig(l)
-
-	// Initialize database
-	db, err := config.InitDB(cfg, l)
-	if err != nil {
-		l.Fatalf("Failed to initialize database: %v", err)
-	}
-
-	fmt.Println("Seeding database...")
+func AutoSeed(db *gorm.DB, log *logger.Logger) error {
+	log.Infof("Auto-seeding database...")
 
 	// 1. Create Admin User
 	adminEmail := "shristi@gmail.com"
@@ -39,7 +16,7 @@ func main() {
 	if err := db.Where("email = ?", adminEmail).First(&existingAdmin).Error; err != nil {
 		hashedPassword, err := bcrypt.GenerateFromPassword([]byte("shristi"), bcrypt.DefaultCost)
 		if err != nil {
-			l.Fatalf("Failed to hash admin password: %v", err)
+			return err
 		}
 
 		admin := domain.User{
@@ -51,11 +28,11 @@ func main() {
 		}
 
 		if err := db.Create(&admin).Error; err != nil {
-			l.Fatalf("Failed to create admin user: %v", err)
+			return err
 		}
-		fmt.Println("- Admin user created (Email: shristi@gmail.com, Password: shristi)")
+		log.Infof("- Admin user created (Email: %s, Password: shristi)", adminEmail)
 	} else {
-		fmt.Println("- Admin user already exists")
+		log.Infof("- Admin user already exists")
 	}
 
 	// 2. Create Products, Variants, and Images
@@ -122,17 +99,18 @@ func main() {
 		var existingProduct domain.Product
 		if err := db.Where("slug = ?", p.Slug).Preload("Images").First(&existingProduct).Error; err != nil {
 			if err := db.Create(&p).Error; err != nil {
-				l.Errorf("Failed to seed product %s: %v", p.Name, err)
+				log.Errorf("Failed to seed product %s: %v", p.Name, err)
 			} else {
-				fmt.Printf("- Seeded product: %s\n", p.Name)
+				log.Infof("- Seeded product: %s", p.Name)
 			}
 		} else {
-			fmt.Printf("- Product already exists: %s. Syncing main image URL...\n", p.Name)
+			log.Infof("- Product already exists: %s. Syncing main image URL...", p.Name)
 			if len(p.Images) > 0 && len(existingProduct.Images) > 0 {
 				db.Model(&existingProduct.Images[0]).Update("image_url", p.Images[0].ImageURL)
 			}
 		}
 	}
 
-	fmt.Println("Database seeded successfully!")
+	log.Infof("Database seeded successfully!")
+	return nil
 }

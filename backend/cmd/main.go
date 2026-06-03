@@ -39,6 +39,14 @@ func main() {
 		log.Fatalf("Failed to run migrations: %v", err)
 	}
 
+	// Auto-seed database if empty
+	var userCount int64
+	if err := db.Table("users").Count(&userCount).Error; err == nil && userCount == 0 {
+		if err := config.AutoSeed(db, log); err != nil {
+			log.Errorf("Auto-seeding database failed: %v", err)
+		}
+	}
+
 	// Initialize repositories
 	userRepo := repository.NewUserRepository(db)
 	productRepo := repository.NewProductRepository(db)
