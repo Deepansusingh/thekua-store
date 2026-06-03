@@ -37,6 +37,16 @@ services:
         value: "*"
       - key: ADMIN_WEBHOOK_URL
         sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: ADMIN_EMAIL
+        sync: false
 
   # 2. Frontend Static Site
   - type: web

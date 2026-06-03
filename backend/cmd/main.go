@@ -60,7 +60,17 @@ func main() {
 
 	// Initialize services
 	webhookURL := os.Getenv("ADMIN_WEBHOOK_URL")
-	notificationService := service.NewNotificationService(webhookURL, log)
+	smtpConfig := service.SMTPConfig{
+		Host:       os.Getenv("SMTP_HOST"),
+		Port:       os.Getenv("SMTP_PORT"),
+		User:       os.Getenv("SMTP_USER"),
+		Password:   os.Getenv("SMTP_PASS"),
+		AdminEmail: os.Getenv("ADMIN_EMAIL"),
+	}
+	if smtpConfig.AdminEmail == "" {
+		smtpConfig.AdminEmail = "shristi@gmail.com"
+	}
+	notificationService := service.NewNotificationService(webhookURL, smtpConfig, log)
 
 	authService := service.NewAuthService(userRepo, cfg.JWT.Secret, cfg.JWT.Expiry, log)
 	productService := service.NewProductService(productRepo, productVariantRepo, productImageRepo, log)
